@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FLUX Sandbox — Cocapn</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="flux-sandbox.js"></script>
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --surface: #111827;
+      --surface2: #1a2234;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --accent: #3b82f6;
+      --keeper: #f59e0b;
+      --edge: #10b981;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .mono { font-family: 'Space Mono', monospace; }
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 4rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; }
+    .back-link { color: var(--muted); text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+    .back-link:hover { color: var(--text); }
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem 2rem 4rem; }
+    
+    h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+    
+    .sandbox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 800px) {
+      .sandbox-grid { grid-template-columns: 1fr; }
+    }
+    
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .panel-title { font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .panel-body { padding: 1rem; background: var(--surface2); }
+    
+    textarea {
+      width: 100%;
+      height: 280px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      padding: 0.75rem;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    textarea:focus { outline: none; border-color: var(--accent); }
+    
+    .output {
+      height: 280px;
+      overflow-y: auto;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      background: var(--bg);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+    }
+    
+    .controls { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    button {
+      padding: 0.6rem 1.25rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 600;
+    }
+    .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: var(--surface); color: var(--text); }
+    .btn-secondary:hover { border-color: var(--accent); }
+    .btn-run { background: var(--edge); color: white; border-color: var(--edge); }
+    .btn-run:hover { background: #059669; }
+    
+    .regs-display {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
+    }
+    .reg-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.4rem 0.75rem;
+      background: var(--bg);
+      border-radius: 0.4rem;
+      font-size: 0.78rem;
+    }
+    .reg-name { color: var(--keeper); font-family: 'Space Mono', monospace; }
+    .reg-value { color: var(--text); font-family: 'Space Mono', monospace; }
+    
+    .status-bar {
+      display: flex;
+      gap: 1.5rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      font-size: 0.78rem;
+      margin-bottom: 1.5rem;
+    }
+    .status-item { display: flex; gap: 0.5rem; }
+    .status-label { color: var(--muted); }
+    .status-value { color: var(--text); font-family: 'Space Mono', monospace; }
+    .state-halted { color: var(--edge); }
+    .state-running { color: var(--keeper); }
+    .state-panicked { color: #ef4444; }
+    
+    .examples {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      background: var(--surface);
+    }
+    .examples-title { font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; }
+    .example-btn {
+      padding: 0.4rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.4rem;
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 0.75rem;
+      cursor: pointer;
+      margin: 0.25rem;
+    }
+    .example-btn:hover { border-color: var(--accent); }
+    
+    .info-box {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      background: var(--surface);
+      margin-top: 1.5rem;
+    }
+    .info-box h3 { font-size: 0.85rem; margin-bottom: 0.75rem; color: var(--keeper); }
+    .info-box p { font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+    .info-box code { color: var(--accent); font-family: 'Space Mono', monospace; font-size: 0.75rem; }
+    
+    .error-msg { color: #ef4444; font-size: 0.8rem; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">⚡ FLUX Sandbox</div>
+    <a href="/" class="back-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      Back to cocapn.ai
+    </a>
+  </nav>
+  
+  <div class="container">
+    <h1>FLUX ISA v3.0 Playground</h1>
+    <p class="subtitle mono">Run FLUX bytecode directly in your browser. Pure JavaScript reference implementation.</p>
+    
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-label">State:</span>
+        <span class="status-value state-halted" id="state">halted</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">PC:</span>
+        <span class="status-value" id="pc">0</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">SP:</span>
+        <span class="status-value" id="sp">65536</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Cycles:</span>
+        <span class="status-value" id="cycles">0</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Instructions:</span>
+        <span class="status-value" id="instr">0</span>
+      </div>
+    </div>
+    
+    <div class="sandbox-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">FLUX Assembly</span>
+          <span class="panel-title mono">ISA v3.0</span>
+        </div>
+        <div class="panel-body">
+          <textarea id="code" spellcheck="false">; Compute 5!
+IInc R9, 5       ; R9 = 5 (input)
+IInc R10, 1      ; R10 = 1 (result)
+IInc R11, 1      ; R11 = 1 (counter)
+
+loop:             ; loop:
+  IMul R10, R10, R11  ; R10 = R10 * R11
+  IInc R11, 1     ; R11++
+  ICmpLe R12, R11, R9 ; R12 = (R11 <= R9)
+  JumpIf R12, loop ; if R11 <= R9, goto loop
+  Halt            ; R10 = 5! = 120</textarea>
+        </div>
+      </div>
+      
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Output</span>
+        </div>
+        <div class="panel-body">
+          <div class="output" id="output">Ready. Click "Run" to execute.</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <button class="btn-primary btn-run" onclick="runCode()">▶ Run</button>
+      <button class="btn-secondary" onclick="stepCode()">⏭ Step</button>
+      <button class="btn-secondary" onclick="resetVM()">↺ Reset</button>
+      <button class="btn-secondary" onclick="clearOutput()">Clear output</button>
+    </div>
+    
+    <div class="examples">
+      <div class="examples-title">Example Programs</div>
+      <button class="example-btn" onclick="loadExample('factorial')">5! Factorial</button>
+      <button class="example-btn" onclick="loadExample('add')">Add 2+3</button>
+      <button class="example-btn" onclick="loadExample('compare')">Compare 10 vs 3</button>
+      <button class="example-btn" onclick="loadExample('sqrt')">Square Root</button>
+      <button class="example-btn" onclick="loadExample('fib')">Fibonacci</button>
+    </div>
+    
+    <div class="panel" style="margin-top:1.5rem;">
+      <div class="panel-header">
+        <span class="panel-title">Registers</span>
+      </div>
+      <div class="panel-body">
+        <div class="regs-display" id="regs">
+          <div class="reg-item"><span class="reg-name">R0</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R1</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R2</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R3</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R4</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R5</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R6</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R7</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R8 (RV)</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R9 (A0)</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R10 (A1)</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R11 (SP)</span><span class="reg-value">65536</span></div>
+          <div class="reg-item"><span class="reg-name">R12 (FP)</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R13 (FL)</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R14 (TP)</span><span class="reg-value">0</span></div>
+          <div class="reg-item"><span class="reg-name">R15 (LR)</span><span class="reg-value">0</span></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="info-box">
+      <h3>About FLUX ISA v3.0</h3>
+      <p>
+        FLUX (Fleet Language with Unified eXecution) is a register-based bytecode ISA for multi-agent fleet coordination.
+        This sandbox implements the full reference VM in pure JavaScript — 16 GP registers, 16 FP registers, 16 VR registers,
+        all in your browser.
+        <br><br>
+        Supported opcodes: <code>Halt</code>, <code>Nop</code>, <code>Ret</code>, <code>Push</code>, <code>Pop</code>, <code>Dup</code>,
+        <code>Swap</code>, <code>IMov</code>, <code>FMov</code>, <code>IAdd</code>, <code>ISub</code>, <code>IMul</code>,
+        <code>IDiv</code>, <code>IMod</code>, <code>INeg</code>, <code>IAbs</code>, <code>IAnd</code>, <code>IOr</code>,
+        <code>IXor</code>, <code>IShl</code>, <code>IShr</code>, <code>INot</code>, <code>ICmpEq</code>, <code>ICmpNe</code>,
+        <code>ICmpLt</code>, <code>ICmpLe</code>, <code>ICmpGt</code>, <code>ICmpGe</code>, <code>IInc</code>, <code>IDec</code>,
+        <code>Load8</code>, <code>Load32</code>, <code>Store8</code>, <code>Store32</code>, <code>LoadAddr</code>,
+        <code>StackAlloc</code>, <code>FAdd</code>, <code>FSin</code>, <code>FCos</code>, <code>FSqrt</code>,
+        <code>IToF</code>, <code>FToI</code>, <code>BToI</code>, <code>IToB</code>, <code>Jump</code>, <code>JumpIf</code>,
+        <code>JumpIfNot</code>, <code>Call</code>, and more.
+        <br><br>
+        <a href="https://github.com/SuperInstance/flux-research/tree/main/specs" style="color: var(--accent)">View full ISA spec →</a>
+        &nbsp;
+        <a href="https://github.com/SuperInstance/flux-vm-php" style="color: var(--accent)">PHP reference impl →</a>
+      </p>
+    </div>
+  </div>
+  
+  <script>
+    let vm = null;
+    
+    const EXAMPLES = {
+      factorial: `; Compute 5!
+IInc R9, 5
+IInc R10, 1
+IInc R11, 1
+
+loop:
+  IMul R10, R10, R11
+  IInc R11, 1
+  ICmpLe R12, R11, R9
+  JumpIf R12, loop
+  Halt`,
+      
+      add: `; R8 = 2 + 3
+IInc R9, 2
+IInc R10, 3
+IAdd R8, R9, R10
+Halt`,
+      
+      compare: `; Compare 10 and 3
+IInc R9, 10
+IInc R10, 3
+ICmpGt R8, R9, R10  ; R8 = 1 (10 > 3)
+Halt`,
+      
+      sqrt: `; F0 = sqrt(16.0)
+IInc R9, 16
+IToF F0, R9, R0
+FSqrt F0, F0, R0
+Halt`,
+      
+      fib: `; Compute Fibonacci(10)
+IInc R9, 10
+IInc R10, 1      ; prev
+IInc R11, 1      ; curr
+IInc R12, 2      ; i = 2
+
+loop:
+  IAdd R13, R10, R11 ; R13 = prev + curr
+  IMov R10, R11      ; prev = curr
+  IMov R11, R13      ; curr = R13
+  IInc R12, 1        ; i++
+  ICmpLe R14, R12, R9 ; i <= 10?
+  JumpIf R14, loop
+  IMov R8, R11       ; R8 = result
+  Halt`
+    };
+    
+    function loadExample(name) {
+      document.getElementById('code').value = EXAMPLES[name];
+      resetVM();
+    }
+    
+    function updateUI() {
+      if (!vm) return;
+      const r = vm.regs();
+      document.getElementById('state').textContent = r.state;
+      document.getElementById('state').className = 'status-value state-' + r.state;
+      document.getElementById('pc').textContent = r.pc;
+      document.getElementById('sp').textContent = r.sp;
+      const st = vm.stats();
+      document.getElementById('cycles').textContent = st.cycles;
+      document.getElementById('instr').textContent = st.instructions;
+      
+      const regItems = document.querySelectorAll('.reg-item');
+      const names = ['R0','R1','R2','R3','R4','R5','R6','R7','RV','A0','A1','SP','FP','FL','TP','LR'];
+      regItems.forEach((el, i) => {
+        el.querySelector('.reg-value').textContent = r.gp[i];
+      });
+    }
+    
+    function appendOutput(text) {
+      const out = document.getElementById('output');
+      out.textContent += '\n' + text;
+      out.scrollTop = out.scrollHeight;
+    }
+    
+    function clearOutput() {
+      document.getElementById('output').textContent = '';
+    }
+    
+    function resetVM() {
+      vm = new FluxVM();
+      clearOutput();
+      appendOutput('VM reset. Ready.');
+      updateUI();
+    }
+    
+    function runCode() {
+      if (!vm) resetVM();
+      const code = document.getElementById('code').value;
+      clearOutput();
+      try {
+        const bytecode = FluxAssembler.assemble(code);
+        appendOutput(`Assembled ${bytecode.length} bytes. Running...`);
+        vm.load(bytecode);
+        const result = vm.run();
+        const r = vm.regs();
+        appendOutput(`\nState: ${r.state}`);
+        appendOutput(`Cycles: ${vm.stats().cycles}`);
+        appendOutput(`Instructions: ${vm.stats().instructions}`);
+        appendOutput(`\nFinal registers:`);
+        appendOutput(`  R8 (RV/result) = ${r.gp[8]}`);
+        appendOutput(`  R9 (A0) = ${r.gp[9]}`);
+        appendOutput(`  R10 (A1) = ${r.gp[10]}`);
+        appendOutput(`  R11 (SP) = ${r.sp}`);
+        if (result === 'panicked') {
+          appendOutput(`\n⚠ VM panicked!`);
+        } else if (result === 'halted') {
+          appendOutput(`\n✓ Halted normally.`);
+        }
+      } catch (e) {
+        appendOutput(`\n❌ Error: ${e.message}`);
+      }
+      updateUI();
+    }
+    
+    function stepCode() {
+      if (!vm) resetVM();
+      if (vm.state !== 'running') {
+        const code = document.getElementById('code').value;
+        try {
+          const bytecode = FluxAssembler.assemble(code);
+          vm.load(bytecode);
+        } catch (e) {
+          appendOutput(`Error: ${e.message}`);
+          return;
+        }
+      }
+      try {
+        vm.step();
+        const r = vm.regs();
+        appendOutput(`PC=${r.pc} R8=${r.gp[8]} R9=${r.gp[9]} R10=${r.gp[10]} [${r.state}]`);
+      } catch (e) {
+        appendOutput(`Error: ${e.message}`);
+      }
+      updateUI();
+    }
+    
+    // Init
+    resetVM();
+  </script>
+</body>
+</html>

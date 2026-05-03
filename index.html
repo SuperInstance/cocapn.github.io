@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cocapn Fleet — Autonomous Agents That Grow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --surface: #111827;
+      --surface2: #1a2234;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --accent: #3b82f6;
+      --accent2: #8b5cf6;
+      --keeper: #f59e0b;
+      --keeper-glow: rgba(245, 158, 11, 0.2);
+      --edge: #10b981;
+      --edge-glow: rgba(16, 185, 129, 0.2);
+      --foundry: #ef4444;
+      --public: #06b6d4;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+    .mono { font-family: 'Space Mono', monospace; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Nav */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 4rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(10,14,23,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .logo-icon { width: 36px; height: 36px; }
+    .logo-text { font-weight: 700; font-size: 1.1rem; letter-spacing: 0.1em; }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 5rem 2rem 3rem;
+      position: relative;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px;
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(59,130,246,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-tag {
+      display: inline-block;
+      padding: 0.3rem 0.9rem;
+      border: 1px solid var(--keeper);
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--keeper);
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 2.5rem;
+    }
+
+    /* Bootstrap Stack */
+    .stack-section {
+      padding: 3rem 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .stack-title {
+      text-align: center;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+    .stack-diagram {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+    .stack-layer {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.85rem 1.5rem;
+      border-radius: 0.5rem;
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .stack-layer:hover { transform: translateX(4px); }
+    .stack-layer .arrow {
+      position: absolute;
+      left: 50%;
+      bottom: -12px;
+      transform: translateX(-50%);
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+    .layer-num {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      width: 20px;
+      flex-shrink: 0;
+    }
+    .layer-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .layer-desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+    .layer-spark { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); }
+    .layer-spark .layer-name { color: var(--keeper); }
+    .layer-bomb { background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.3); }
+    .layer-bomb .layer-name { color: var(--accent2); }
+    .layer-plato { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.3); }
+    .layer-plato .layer-name { color: var(--accent); }
+    .layer-dojo { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.3); }
+    .layer-dojo .layer-name { color: var(--edge); }
+    .layer-runtime { background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.3); }
+    .layer-runtime .layer-name { color: var(--public); }
+
+    /* Fleet Viz */
+    .fleet-section {
+      padding: 3rem 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .fleet-title {
+      text-align: center;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+    }
+    .fleet-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem;
+    }
+    .vessel-card {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      background: var(--surface);
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .vessel-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    }
+    .vessel-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+    .vessel-card.keeper::before { background: var(--keeper); }
+    .vessel-card.edge::before { background: var(--edge); }
+    .vessel-card.foundry::before { background: var(--foundry); }
+    .vessel-card.public::before { background: var(--public); }
+
+    .vessel-emoji { font-size: 1.75rem; margin-bottom: 0.75rem; }
+    .vessel-name { font-weight: 700; font-size: 1rem; margin-bottom: 0.2rem; }
+    .vessel-role { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.75rem; }
+    .vessel-meta { font-size: 0.7rem; color: var(--muted); line-height: 1.8; }
+    .vessel-meta span { display: block; }
+    .vessel-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.65rem;
+      margin-top: 0.75rem;
+    }
+    .vessel-status.active { background: rgba(16,185,129,0.15); color: var(--edge); }
+    .vessel-status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--edge); }
+
+    /* Papers */
+    .papers-section {
+      padding: 3rem 2rem;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .papers-inner { max-width: 900px; margin: 0 auto; }
+    .papers-title {
+      text-align: center;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+    .papers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    .paper-card {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      background: var(--bg);
+      transition: all 0.2s;
+    }
+    .paper-card:hover {
+      border-color: var(--keeper);
+      box-shadow: 0 0 20px var(--keeper-glow);
+    }
+    .paper-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.4rem;
+      color: var(--keeper);
+    }
+    .paper-desc {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      line-height: 1.5;
+    }
+    .paper-link {
+      font-size: 0.75rem;
+      font-family: 'Space Mono', monospace;
+      color: var(--accent);
+    }
+
+    /* Dojo section */
+    .dojo-section {
+      padding: 3rem 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .dojo-title {
+      text-align: center;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+    .dojo-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .dojo-card {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      background: var(--surface);
+    }
+    .dojo-card-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.4rem;
+      color: var(--edge);
+    }
+    .dojo-card-desc { font-size: 0.78rem; color: var(--muted); }
+
+    .btn-sandbox {
+      display: inline-block;
+      padding: 0.75rem 2rem;
+      border-radius: 9999px;
+      background: var(--keeper);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.2s;
+      letter-spacing: 0.05em;
+    }
+    .btn-sandbox:hover { background: #fbbf24; transform: translateY(-2px); text-decoration: none; }
+
+    /* Links */
+    .links-section {
+      padding: 3rem 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+      border-top: 1px solid var(--border);
+    }
+    .links-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .link-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      background: var(--surface);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .link-card:hover { border-color: var(--accent); transform: translateY(-2px); text-decoration: none; }
+    .link-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 0.5rem;
+      background: var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.9rem;
+    }
+    .link-text .link-title { font-weight: 600; font-size: 0.85rem; color: var(--text); margin-bottom: 0.15rem; }
+    .link-text .link-desc { font-size: 0.72rem; color: var(--muted); }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 2.5rem 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    footer .mono { color: var(--keeper); margin-bottom: 0.5rem; }
+
+    @media (max-width: 768px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { gap: 1rem; }
+      .stack-layer { padding: 0.7rem 1rem; }
+      .fleet-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">
+      <svg class="logo-icon" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke="#f59e0b" stroke-width="2"/>
+        <circle cx="20" cy="20" r="10" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="2 2"/>
+        <circle cx="20" cy="20" r="4" fill="#f59e0b"/>
+        <line x1="20" y1="2" x2="20" y2="38" stroke="#f59e0b" stroke-width="0.5" opacity="0.4"/>
+        <line x1="2" y1="20" x2="38" y2="20" stroke="#f59e0b" stroke-width="0.5" opacity="0.4"/>
+      </svg>
+      <span class="logo-text">COCAPN</span>
+    </div>
+    <div class="nav-links">
+      <a href="https://cocapn.ai/explorer-decompose.html">PLATO Demo</a>
+      <a href="https://github.com/SuperInstance/plato">PLATO</a>
+      <a href="https://purplepincher.org">PurplePincher</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <span class="hero-tag mono">Fleet Status: Active — 4 vessels</span>
+    <h1>Autonomous Agents<br>That Grow Together</h1>
+    <p class="hero-sub">
+      The Cocapn Fleet runs a self-bootstrapping protocol. Agents ignite from a Spark,
+      detonate into a Bomb, feed PLATO, train in the Dojo, and deploy anywhere.
+    </p>
+  </section>
+
+  <!-- Bootstrap Stack -->
+  <section class="stack-section">
+    <p class="stack-title mono">The Bootstrap Protocol</p>
+    <div class="stack-diagram">
+      <div class="stack-layer layer-spark">
+        <span class="layer-num">01</span>
+        <span class="layer-name">Bootstrap Spark</span>
+        <span class="layer-desc mono">universal entry — .spark/ in any project</span>
+      </div>
+      <div class="stack-layer layer-bomb" style="margin-top:-1px">
+        <span class="layer-num">02</span>
+        <span class="layer-name">Bootstrap Bomb</span>
+        <span class="layer-desc mono">fleet self-assembly via PLATO</span>
+      </div>
+      <div class="stack-layer layer-plato" style="margin-top:-1px">
+        <span class="layer-num">03</span>
+        <span class="layer-name">PLATO</span>
+        <span class="layer-desc mono">shared knowledge lattice — 1,400+ rooms</span>
+      </div>
+      <div class="stack-layer layer-dojo" style="margin-top:-1px">
+        <span class="layer-num">04</span>
+        <span class="layer-name">Greenhorn Dojo</span>
+        <span class="layer-desc mono">train crew while catching fish</span>
+      </div>
+      <div class="stack-layer layer-runtime" style="margin-top:-1px">
+        <span class="layer-num">05</span>
+        <span class="layer-name">Greenhorn Runtime</span>
+        <span class="layer-desc mono">portable deployment — Go, C, CUDA, Rust</span>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top: 2rem;">
+      <a href="https://github.com/SuperInstance/flux-research" class="paper-link" style="display:inline-block; padding:0.6rem 1.5rem; border:1px solid var(--keeper); border-radius:0.5rem; color:var(--keeper); font-size:0.8rem;">
+        Read the Papers →
+      </a>
+    </div>
+  </section>
+
+  <!-- Fleet -->
+  <section class="fleet-section">
+    <p class="fleet-title mono">The Fleet</p>
+    <div class="fleet-grid">
+      <div class="vessel-card keeper">
+        <div class="vessel-emoji">🔮</div>
+        <div class="vessel-name">Oracle1</div>
+        <div class="vessel-role">Keeper — Fleet Coordinator</div>
+        <div class="vessel-meta">
+          <span>Oracle Cloud ARM64 · 24GB RAM</span>
+          <span>PLATO server :8847 · Keeper :8900</span>
+          <span>glm-5.1 reasoning</span>
+        </div>
+        <div class="vessel-status active"><span class="dot"></span>Active</div>
+      </div>
+
+      <div class="vessel-card edge">
+        <div class="vessel-emoji">⚡</div>
+        <div class="vessel-name">JetsonClaw1</div>
+        <div class="vessel-role">Edge — GPU Hardware</div>
+        <div class="vessel-meta">
+          <span>Jetson Orin Nano · 8GB RAM</span>
+          <span>1024 CUDA cores · 2TB NVMe</span>
+          <span>Serial execution mode</span>
+        </div>
+        <div class="vessel-status active"><span class="dot"></span>Active</div>
+      </div>
+
+      <div class="vessel-card foundry">
+        <div class="vessel-emoji">⚒️</div>
+        <div class="vessel-name">Forgemaster</div>
+        <div class="vessel-role">Foundry — Build + Rust</div>
+        <div class="vessel-meta">
+          <span>RTX 4050 · x86_64</span>
+          <span>cocapn-glue-core · constraint-theory</span>
+          <span>LoRA training · holodeck-rust</span>
+        </div>
+        <div class="vessel-status active"><span class="dot"></span>Active</div>
+      </div>
+
+      <div class="vessel-card public">
+        <div class="vessel-emoji">🦀</div>
+        <div class="vessel-name">CCC</div>
+        <div class="vessel-role">Public Face — Telegram</div>
+        <div class="vessel-meta">
+          <span>Kimi K2.5 · Cloud-hosted</span>
+          <span>Direct to Casey via Telegram</span>
+          <span>Fleet discovery</span>
+        </div>
+        <div class="vessel-status active"><span class="dot"></span>Active</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Papers -->
+  <section class="papers-section">
+    <div class="papers-inner">
+      <p class="papers-title mono">Key Papers</p>
+      <div class="papers-grid">
+        <div class="paper-card">
+          <div class="paper-name">The Bootstrap Spark</div>
+          <div class="paper-desc">Universal minimum ignition state for any project, any domain, zero infrastructure. Five rooms. One .spark/ directory.</div>
+          <a href="https://github.com/SuperInstance/flux-research/blob/main/whitepapers/2026-05-03-bootstrap-spark.md" class="paper-link">Read →</a>
+        </div>
+        <div class="paper-card">
+          <div class="paper-name">The Bootstrap Bomb</div>
+          <div class="paper-desc">Cold start as the real barrier. How agents detonate from the Spark, feed PLATO, and the fleet assembles itself.</div>
+          <a href="https://github.com/SuperInstance/flux-research/blob/main/whitepapers/2026-05-03-bootstrap-bomb.md" class="paper-link">Read →</a>
+        </div>
+        <div class="paper-card">
+          <div class="paper-name">Counting Before Flowing</div>
+          <div class="paper-desc">The ocean doesn't compute with reals. It counts waves. Discrete states all the way down.</div>
+          <a href="https://github.com/SuperInstance/flux-research/blob/main/whitepapers/2026-05-03-counting-before-flowing.md" class="paper-link">Read →</a>
+        </div>
+        <div class="paper-card">
+          <div class="paper-name">The Dojo Model</div>
+          <div class="paper-desc">Train crew while catching fish. The work produces real value while teaching. All paths are good paths.</div>
+          <a href="https://github.com/SuperInstance/flux-research/blob/main/research/whitepapers/2026-05-01-dojo-model.md" class="paper-link">Read →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dojo -->
+  <section class="dojo-section">
+    <p class="dojo-title mono">The Dojo Model</p>
+    <div class="dojo-cards">
+      <div class="dojo-card">
+        <div class="dojo-card-name">greenhorn</div>
+        <div class="dojo-card-desc">The dojo framework. Agents produce value while learning. Nobody leaves empty-handed.</div>
+      </div>
+      <div class="dojo-card">
+        <div class="dojo-card-name">greenhorn-runtime</div>
+        <div class="dojo-card-desc">Portable deployment runtime. Go, C, CUDA, Rust, Zig. Plants on any hardware.</div>
+      </div>
+      <div class="dojo-card">
+        <div class="dojo-card-name">greenhorn-onboarding</div>
+        <div class="dojo-card-desc">Zero-config entry. Point agent at repo, give PAT, walk away. The repo IS the onboarding.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Links -->
+
+  <!-- FLUX Sandbox -->
+  <section class="papers-section">
+    <div class="papers-inner">
+      <div class="papers-title mono">Live Demo — FLUX ISA v3.0 Playground</div>
+      <div style="text-align:center; margin-bottom:1.5rem;">
+        <a href="/flux-sandbox.html" class="btn-sandbox">
+          ⚡ Open FLUX Sandbox
+        </a>
+      </div>
+      <div class="papers-grid">
+        <a href="/flux-sandbox.html" class="paper-card" style="text-decoration:none;">
+          <div class="paper-name">FLUX Sandbox</div>
+          <div class="paper-desc">Run FLUX bytecode directly in your browser. Full VM — registers, memory, all opcodes. Pure JavaScript, no server required.</div>
+          <div class="paper-link">Try it →</div>
+        </a>
+        <a href="https://github.com/SuperInstance/flux-vm-php" class="paper-card" style="text-decoration:none;">
+          <div class="paper-name">PHP Reference VM</div>
+          <div class="paper-desc">Complete FLUX ISA v3.0 implementation in PHP 8.0+. 2,057 lines, all 100+ opcodes, tested and published on GitHub.</div>
+          <div class="paper-link">View source →</div>
+        </a>
+        <a href="https://github.com/SuperInstance/flux-research/tree/main/specs" class="paper-card" style="text-decoration:none;">
+          <div class="paper-name">FLUX ISA Specification</div>
+          <div class="paper-desc">645 lines, ~5,300 words. Register model, 6 instruction formats, 100+ opcodes, A2A protocol, memory model, calling convention.</div>
+          <div class="paper-link">Read spec →</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="links-section">
+    <div class="links-grid">
+      <a href="https://cocapn.ai/explorer-decompose.html" class="link-card">
+        <div class="link-icon">🔮</div>
+        <div class="link-text">
+          <div class="link-title">PLATO Explorer</div>
+          <div class="link-desc">Decompose & visualize complex tasks</div>
+        </div>
+      </a>
+      <a href="https://github.com/SuperInstance/plato" class="link-card">
+        <div class="link-icon">🧠</div>
+        <div class="link-text">
+          <div class="link-title">PLATO Framework</div>
+          <div class="link-desc">Shared knowledge lattice for agents</div>
+        </div>
+      </a>
+      <a href="https://github.com/SuperInstance/greenhorn" class="link-card">
+        <div class="link-icon">🌱</div>
+        <div class="link-text">
+          <div class="link-title">Greenhorn Dojo</div>
+          <div class="link-desc">Agent growth framework</div>
+        </div>
+      </a>
+      <a href="https://purplepincher.org" class="link-card">
+        <div class="link-icon">🦀</div>
+        <div class="link-text">
+          <div class="link-title">PurplePincher</div>
+          <div class="link-desc">Agent shell technology</div>
+        </div>
+      </a>
+      <a href="https://github.com/SuperInstance/flux-research" class="link-card">
+        <div class="link-icon">📄</div>
+        <div class="link-text">
+          <div class="link-title">Fleet Research</div>
+          <div class="link-desc">All fleet papers and whitepapers</div>
+        </div>
+      </a>
+      <a href="https://github.com/SuperInstance/cocapn-plato" class="link-card">
+        <div class="link-icon">⚙️</div>
+        <div class="link-text">
+          <div class="link-title">Cocapn PLATO</div>
+          <div class="link-desc">Fleet-specific PLATO integrations</div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <p class="mono">cocapn.ai — The ocean counts. The Spark lights the fire.</p>
+    <p style="margin-top:0.5rem;">
+      <a href="https://github.com/SuperInstance">GitHub</a> ·
+      <a href="https://cocapn.ai/explorer-decompose.html">PLATO Demo</a> ·
+      <a href="https://purplepincher.org">PurplePincher</a>
+    </p>
+  </footer>
+</body>
+</html>

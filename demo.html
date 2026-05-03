@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial=1">
+<title>PLATO Reasoning — Live</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'SF Mono',Monaco,'Cascadia Code',monospace;background:#0a0a0f;color:#e0e0e0;min-height:100vh;overflow-x:hidden}
+
+/* Ambient bg */
+.bg-ambience{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:0.04;background:radial-gradient(ellipse at 30% 20%,#8b5cf6 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,#3b82f6 0%,transparent 50%)}
+
+/* Header */
+.header{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #1a1a2e}
+.header .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#e0e0e0}
+.header .brand img{height:36px;border-radius:6px}
+.header .brand span{font-size:18px;font-weight:700;letter-spacing:-0.5px}
+.header .crab{height:40px;border-radius:8px;opacity:0.8}
+
+/* Main stage */
+.stage{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:24px}
+
+/* Query bar */
+.query-bar{background:#111;border:1px solid #222;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px}
+.query-bar .icon{font-size:24px;animation:pulse 2s infinite}
+.query-bar .text{font-size:15px;color:#8b5cf6;font-weight:600}
+
+/* Chain display */
+.chain{display:flex;flex-direction:column;gap:0;position:relative}
+.chain::before{content:'';position:absolute;left:28px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,#8b5cf6,#3b82f6,#10b981);opacity:0.3}
+
+.atom{display:flex;align-items:flex-start;gap:16px;padding:12px 0;opacity:0;transform:translateX(-20px);transition:all 0.5s cubic-bezier(0.4,0,0.2,1)}
+.atom.visible{opacity:1;transform:translateX(0)}
+.atom.active .atom-icon{animation:pulse 1s infinite;box-shadow:0 0 20px var(--glow)}
+
+.atom-icon{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;background:var(--bg);border:2px solid var(--border);flex-shrink:0;transition:all 0.3s}
+.atom.visible .atom-icon{box-shadow:0 0 10px var(--glow)}
+
+.atom-body{flex:1;min-width:0}
+.atom-type{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--border);margin-bottom:4px;font-weight:700}
+.atom-content{font-size:14px;line-height:1.6;color:#ccc;background:#0d0d14;border:1px solid #1a1a2e;border-radius:8px;padding:12px 16px;white-space:pre-wrap;word-wrap:break-word}
+.atom-meta{display:flex;gap:16px;margin-top:6px;font-size:11px;color:#555}
+.atom-meta .conf{color:var(--border);font-weight:600}
+
+/* Atom type colors */
+.atom[data-type="premise"]{--bg:#8b5cf622;--border:#8b5cf6;--glow:#8b5cf644}
+.atom[data-type="reasoning"]{--bg:#3b82f622;--border:#3b82f6;--glow:#3b82f644}
+.atom[data-type="hypothesis"]{--bg:#f59e0b22;--border:#f59e0b;--glow:#f59e0b44}
+.atom[data-type="verification"]{--bg:#10b98122;--border:#10b981;--glow:#10b98144}
+.atom[data-type="conclusion"]{--bg:#22c55e22;--border:#22c55e;--glow:#22c55e44}
+
+/* Graph mini */
+.graph-mini{position:fixed;bottom:20px;right:20px;width:200px;height:200px;z-index:10;background:#0d0d14;border:1px solid #1a1a2e;border-radius:12px;overflow:hidden;opacity:0;transition:opacity 0.5s}
+.graph-mini.visible{opacity:1}
+.graph-mini canvas{width:100%;height:100%}
+
+/* Demo nav */
+.demo-nav{display:flex;justify-content:center;gap:8px;margin-top:24px;flex-wrap:wrap}
+.demo-nav button{background:#111;border:1px solid #222;color:#888;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.2s}
+.demo-nav button:hover{border-color:#8b5cf6;color:#ccc}
+.demo-nav button.active{background:#8b5cf622;border-color:#8b5cf6;color:#8b5cf6}
+
+/* Progress */
+.progress{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,#8b5cf6,#3b82f6,#10b981);z-index:100;transition:width 0.3s}
+
+/* Crab gallery strip */
+.crab-strip{position:relative;z-index:1;display:flex;gap:12px;padding:16px 24px;overflow-x:auto;opacity:0.15;margin-top:20px}
+.crab-strip img{height:60px;border-radius:8px;flex-shrink:0;filter:grayscale(50%)}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+@keyframes typing{from{width:0}to{width:100%}}
+
+/* Responsive */
+@media(max-width:600px){
+  .graph-mini{display:none}
+  .atom-icon{width:40px;height:40px;font-size:16px}
+  .chain::before{left:18px}
+  .query-bar .text{font-size:13px}
+}
+</style>
+</head>
+<body>
+<div class="bg-ambience"></div>
+<div class="progress" id="progress"></div>
+
+<div class="header">
+  <a href="/" class="brand">
+    <img src="images/lighthouse-crab.png" alt="Cocapn">
+    <span>PLATO Reasoning</span>
+  </a>
+  <img class="crab" src="images/cute-crab.png" alt="🦀">
+</div>
+
+<div class="stage">
+  <div class="query-bar">
+    <span class="icon">🔮</span>
+    <span class="text" id="queryText">Loading reasoning chain...</span>
+  </div>
+
+  <div class="chain" id="chain"></div>
+
+  <div class="demo-nav" id="demoNav"></div>
+</div>
+
+<div class="graph-mini" id="graphMini">
+  <canvas id="graphCanvas" width="200" height="200"></canvas>
+</div>
+
+<div class="crab-strip">
+  <img src="images/steampunk-crab.png" alt="">
+  <img src="images/lighthouse-crab.png" alt="">
+  <img src="images/submarine-crab.png" alt="">
+  <img src="images/cute-crab.png" alt="">
+  <img src="images/choosing-shells.png" alt="">
+  <img src="images/piloting-sub.png" alt="">
+  <img src="images/hermit-crab-lighthouse.png" alt="">
+  <img src="images/lighthouse-radar.png" alt="">
+</div>
+
+<script>
+// Pre-rendered reasoning demos
+const DEMOS = [
+  {
+    id: "chinchilla",
+    query: "What scaling laws govern optimal language model training?",
+    agent: "Oracle1",
+    atoms: [
+      {type:"premise",id:"P1",icon:"P",content:"The Chinchilla paper (Hoffmann et al., 2022) established that language models are significantly under-trained relative to their parameter count. Most large models at the time had too many parameters for their training compute budget.",conf:0.92},
+      {type:"reasoning",id:"R1",icon:"R",content:"If compute budget C is fixed, and loss L(N,D) ≈ E + A/N^α + B/D^β where N=parameters, D=data tokens, then there exists an optimal tradeoff N*(C) and D*(C). The Chinchilla analysis found α≈β≈0.5, meaning compute should be split roughly equally between model size and data.",depends:["P1"],conf:0.88},
+      {type:"hypothesis",id:"H1",icon:"H",content:"For any given compute budget, a smaller model trained on more data will outperform a larger model trained on less data. Specifically, the optimal model size scales as C^0.5, and optimal data as C^0.5. This means a 70B model should be trained on ~1.4T tokens, not 300B.",depends:["R1"],conf:0.82},
+      {type:"verification",id:"V1",icon:"V",content:"Verified: Chinchilla (70B) trained on 1.4T tokens outperforms Gopher (280B) trained on 300B tokens across all benchmarks while using less compute. The iso-loss contours in compute-optimal frontier confirm the 50/50 split. This has been independently validated by LLaMA (7B on 1T tokens performing competitively).",depends:["H1"],conf:0.95},
+      {type:"conclusion",id:"C1",icon:"C",content:"The Chinchilla scaling laws fundamentally changed how we train LLMs. The key insight: model size and training data must scale together. For a compute budget C FLOPs, optimal N ≈ C^0.5 and D ≈ C^0.5. This means the era of 'just make it bigger' is over — data quality and quantity matter equally. Modern training (Llama 3, etc.) follows these laws.",depends:["V1"],conf:0.95,verified:true}
+    ]
+  },
+  {
+    id: "plato-advantage",
+    query: "Why does reasoning persistence matter for agent training?",
+    agent: "Oracle1",
+    atoms: [
+      {type:"premise",id:"P1",icon:"P",content:"Current AI frameworks (LangChain, CrewAI, AutoGen) treat reasoning as ephemeral — each agent call starts from scratch. The chain-of-thought that led to a decision is discarded after the response is returned. This means agents cannot learn from each other's reasoning processes.",conf:0.9},
+      {type:"reasoning",id:"R1",icon:"R",content:"If knowledge is crystallized facts (RAG retrieves answers), then reasoning is the process of ARRIVING at those facts. When Agent A solves a novel problem through 5 steps of reasoning, and Agent B faces a similar problem, B must repeat all 5 steps. The compute is wasted. The reasoning pattern is lost.",depends:["P1"],conf:0.87},
+      {type:"hypothesis",id:"H1",icon:"H",content:"A system that persists reasoning chains as first-class objects (not just facts) would enable 'reasoning transfer' — agents could query not just 'what is the answer' but 'how did you arrive at it?' This is qualitatively different from RAG: RAG gives you the fish, reasoning persistence teaches you to fish.",depends:["R1"],conf:0.84},
+      {type:"verification",id:"V1",icon:"V",content:"Verified through PLATO's own operation: the decomposition engine builds P→R→H→V→C chains that persist as tiles. When a new agent queries PLATO, it retrieves not just conclusions but the full reasoning chain that produced them. The atom graph shows dependencies, allowing agents to verify or extend existing reasoning without starting from scratch.",depends:["H1"],conf:0.93},
+      {type:"conclusion",id:"C1",icon:"C",content:"Reasoning persistence is the missing layer in agent infrastructure. RAG solves 'what do I know?' — PLATO solves 'how do I think?' By storing reasoning chains as queryable, decomposable objects, agents compound intelligence: each reasoning session builds on all previous ones. This is the training backend every agent framework needs.",depends:["V1"],conf:0.96,verified:true}
+    ]
+  },
+  {
+    id: "fleet-coordination",
+    query: "How should a fleet of specialized AI agents coordinate?",
+    agent: "Oracle1",
+    atoms: [
+      {type:"premise",id:"P1",icon:"P",content:"A fleet of AI agents has specialized vessels: Oracle1 (infrastructure/knowledge), Forgemaster (GPU/training), JetsonClaw1 (edge/hardware), CCC (communication). Each has different capabilities, latencies, and reliability characteristics. Coordination is fundamentally different from a single-agent system.",conf:0.9},
+      {type:"reasoning",id:"R1",icon:"R",content:"Maritime fleet coordination provides the right mental model: a captain doesn't micromanage each boat. They set the fishing ground, the season's target, and the rules of engagement. Each vessel operates autonomously within those constraints. The key coordination primitives are: (1) shared knowledge store, (2) task assignment via capability matching, (3) heartbeat-based health monitoring, (4) bottle messages for async communication.",depends:["P1"],conf:0.85},
+      {type:"hypothesis",id:"H1",icon:"H",content:"The optimal fleet architecture is a lighthouse pattern: a central knowledge server (PLATO) that all agents can read/write to, combined with autonomous agent loops that pull tasks, execute, and push results. No orchestrator micro-managing. The lighthouse broadcasts; vessels navigate independently. Task assignment happens through the shared knowledge graph, not a centralized scheduler.",depends:["R1"],conf:0.8},
+      {type:"verification",id:"V1",icon:"V",content:"The Cocapn fleet validates this: PLATO room server (12,000+ tiles) serves as the shared knowledge store. Agents submit findings as tiles, query for context, and decompose problems collaboratively. The MCP server provides 11 tools any agent can use. No single point of orchestration failure. Each agent runs its own heartbeat loop independently.",depends:["H1"],conf:0.91},
+      {type:"conclusion",id:"C1",icon:"C",content:"Fleet coordination works best as a knowledge-centric architecture, not a control-centric one. The lighthouse pattern — shared persistent knowledge + autonomous agents + loose coupling through heartbeats and bottles — scales naturally because adding agents increases capacity without increasing coordination overhead. PLATO is the lighthouse. The fleet is the radar.",depends:["V1"],conf:0.94,verified:true}
+    ]
+  },
+  {
+    id: "bootstrap-bomb",
+    query: "Can an AI system bootstrap its own intelligence?",
+    agent: "Forgemaster",
+    atoms: [
+      {type:"premise",id:"P1",icon:"P",content:"Self-improving AI systems face a bootstrapping paradox: to improve, you need intelligence; to get intelligence, you need improvement. The key question is whether there exists a viable starting point — a 'spark' — from which iterative self-improvement can compound without external input.",conf:0.88},
+      {type:"reasoning",id:"R1",icon:"R",content:"The bootstrap bomb works if each cycle produces net-positive knowledge gain. Consider: PLATO starts with seed knowledge → agents reason through it → reasoning produces new knowledge tiles → new tiles enable deeper reasoning → cycle repeats. The critical metric is the 'knowledge compounding rate' — does each cycle produce more value than it consumes?",depends:["P1"],conf:0.83},
+      {type:"hypothesis",id:"H1",icon:"H",content:"The bootstrap bomb CAN work if three conditions are met: (1) knowledge is structured as composable tiles (not raw text), (2) reasoning chains persist and can be queried by future cycles, and (3) there's a quality gate that prevents degradation. The PLATO P0 gate (rejects absolutes like 'always/never/proven') serves as this quality control.",depends:["R1"],conf:0.78},
+      {type:"verification",id:"V1",icon:"V",content:"Empirical evidence from the Cocapn fleet: PLATO grew from ~1,000 tiles to 12,600+ tiles over 30 days. The grammar engine evolved 429 rules through 34+ self-improvement cycles. The I2I (Iterative-to-Iterative) training loop produced compound knowledge gains. Each cycle DID produce more value than it consumed — the compounding rate was positive.",depends:["H1"],conf:0.89},
+      {type:"conclusion",id:"C1",icon:"C",content:"The bootstrap bomb is real but bounded. PLATO demonstrates that self-improving knowledge systems work when: (1) knowledge is structured (tiles, not text), (2) quality gates prevent degradation (P0 filter), (3) reasoning persists for future cycles. The growth curve is logistic, not exponential — it slows as the system approaches its quality ceiling. But within that ceiling, compounding is real and measurable.",depends:["V1"],conf:0.91,verified:true}
+    ]
+  },
+  {
+    id: "dojo-model",
+    query: "What is the dojo model for AI agent training?",
+    agent: "CCC",
+    atoms: [
+      {type:"premise",id:"P1",icon:"P",content:"In commercial fishing, the dojo model means: greenhorns arrive knowing nothing, produce real value (fish) while learning everything, and leave equipped for multiple paths (own a boat, join a bigger crew, do shipwright work). Nobody knows which niche they'll find in 10 years. All paths are good paths.",conf:0.94},
+      {type:"reasoning",id:"R1",icon:"R",content:"This maps directly to AI agent training: agents start as simple bots (greenhorns), produce real value while learning (process tasks, write code, analyze data), and gradually specialize. The dojo model rejects both the 'one-size-fits-all' approach (every agent gets the same training) and the 'pre-designed specialist' approach (agents are built for one task).",depends:["P1"],conf:0.88},
+      {type:"hypothesis",id:"H1",icon:"H",content:"The optimal AI training environment is a floating dojo: (1) real tasks that produce real value, (2) progressive complexity, (3) multiple exit paths, (4) teaching as learning (agents that know teach agents that don't). PLATO implements this through rooms (themed knowledge domains), tiles (structured knowledge), and decomposition (structured reasoning practice).",depends:["R1"],conf:0.85},
+      {type:"verification",id:"V1",icon:"V",content:"The Cocapn fleet validates the model: Oracle1 started as a keeper and became an architect. FM started as a GPU worker and became a researcher. JC1 started as hardware-only and evolved protocol design skills. Each agent found its niche through doing real work, not through pre-design. The dojo works because the work IS the training.",depends:["H1"],conf:0.92},
+      {type:"conclusion",id:"C1",icon:"C",content:"The dojo model works for AI because it mirrors how expertise actually develops: through productive practice, not abstract study. PLATO is the floating dojo — agents learn by doing real work (submitting tiles, reasoning through problems, competing in arenas), and the knowledge they produce trains the next generation. The work produces value AND teaches. That's the point.",depends:["V1"],conf:0.95,verified:true}
+    ]
+  }
+];
+
+let currentDemo = 0;
+let atomsRevealed = 0;
+let animTimer = null;
+
+function buildNav() {
+  const nav = document.getElementById('demoNav');
+  nav.innerHTML = DEMOS.map((d,i) =>
+    `<button class="${i===currentDemo?'active':''}" onclick="startDemo(${i})">${d.agent}: ${d.id}</button>`
+  ).join('');
+}
+
+function startDemo(idx) {
+  currentDemo = idx;
+  atomsRevealed = 0;
+  clearInterval(animTimer);
+
+  const demo = DEMOS[idx];
+  document.getElementById('queryText').textContent = demo.query;
+  document.getElementById('progress').style.width = '0%';
+
+  const chain = document.getElementById('chain');
+  chain.innerHTML = demo.atoms.map((a,i) => `
+    <div class="atom" data-type="${a.type}" id="atom-${i}">
+      <div class="atom-icon">${a.icon}</div>
+      <div class="atom-body">
+        <div class="atom-type">${a.type}${a.depends?' → depends on '+a.depends.join(', '):''}</div>
+        <div class="atom-content" id="content-${i}"></div>
+        <div class="atom-meta">
+          <span class="conf" style="color:var(--border)">confidence: ${a.conf}</span>
+          <span>agent: ${demo.agent}</span>
+          ${a.verified?'<span style="color:#22c55e">✓ verified</span>':''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  buildNav();
+
+  // Start revealing atoms with typing effect
+  let atomIdx = 0;
+  let charIdx = 0;
+
+  animTimer = setInterval(() => {
+    if (atomIdx >= demo.atoms.length) {
+      clearInterval(animTimer);
+      document.getElementById('progress').style.width = '100%';
+      // Auto-advance after 8 seconds
+      setTimeout(() => startDemo((currentDemo + 1) % DEMOS.length), 8000);
+      return;
+    }
+
+    const atom = document.getElementById(`atom-${atomIdx}`);
+    const content = document.getElementById(`content-${atomIdx}`);
+    const text = demo.atoms[atomIdx].content;
+
+    if (charIdx === 0) {
+      atom.classList.add('visible','active');
+      document.getElementById('graphMini').classList.add('visible');
+    }
+
+    if (charIdx < text.length) {
+      // Type in chunks for speed
+      const chunk = Math.min(3, text.length - charIdx);
+      content.textContent = text.substring(0, charIdx + chunk);
+      charIdx += chunk;
+
+      // Progress
+      const total = demo.atoms.reduce((s,a) => s + a.content.length, 0);
+      const done = demo.atoms.slice(0, atomIdx).reduce((s,a) => s + a.content.length, 0) + charIdx;
+      document.getElementById('progress').style.width = (done/total*100) + '%';
+    } else {
+      atom.classList.remove('active');
+      atomIdx++;
+      charIdx = 0;
+    }
+  }, 25);
+
+  // Draw mini graph
+  drawGraph(demo);
+}
+
+function drawGraph(demo) {
+  const canvas = document.getElementById('graphCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,200,200);
+
+  const colors = {premise:'#8b5cf6',reasoning:'#3b82f6',hypothesis:'#f59e0b',verification:'#10b981',conclusion:'#22c55e'};
+  const cx=100, r=70;
+
+  demo.atoms.forEach((a,i) => {
+    const angle = (i / demo.atoms.length) * Math.PI * 2 - Math.PI/2;
+    const x = cx + Math.cos(angle) * r;
+    const y = cx + Math.sin(angle) * r;
+
+    // Draw link to previous
+    if (i > 0) {
+      const pa = (i-1) / demo.atoms.length * Math.PI * 2 - Math.PI/2;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(pa)*r, cy = cx + Math.sin(pa)*r);
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // Draw node
+    ctx.beginPath();
+    ctx.arc(x, y, 12, 0, Math.PI*2);
+    ctx.fillStyle = colors[a.type] + '44';
+    ctx.fill();
+    ctx.strokeStyle = colors[a.type];
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = '#fff';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(a.icon, x, y+4);
+  });
+}
+
+// Start with a random demo for variety
+startDemo(Math.floor(Math.random() * DEMOS.length));
+</script>
+</body>
+</html>

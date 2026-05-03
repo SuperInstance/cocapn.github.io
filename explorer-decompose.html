@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLATO Decomposition Explorer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #e0e0e0; }
+.header { padding: 20px 30px; border-bottom: 1px solid #1a1a2e; display: flex; justify-content: space-between; align-items: center; }
+.header h1 { font-size: 20px; color: #8b5cf6; }
+.header span { font-size: 12px; color: #666; }
+.controls { padding: 16px 30px; display: flex; gap: 10px; align-items: center; background: #0d0d15; }
+.btn { padding: 8px 16px; border: 1px solid #8b5cf6; background: transparent; color: #8b5cf6; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+.btn:hover { background: #8b5cf6; color: #fff; }
+.btn.active { background: #8b5cf6; color: #fff; }
+.btn.danger { border-color: #ef4444; color: #ef4444; }
+.btn.danger:hover { background: #ef4444; color: #fff; }
+select, input { padding: 8px 12px; border: 1px solid #333; background: #111; color: #e0e0e0; border-radius: 6px; font-size: 13px; }
+.main { display: grid; grid-template-columns: 1fr 1fr; height: calc(100vh - 120px); }
+.graph-panel { border-right: 1px solid #1a1a2e; position: relative; overflow: hidden; }
+.chain-panel { overflow-y: auto; padding: 20px; }
+.chain-step { padding: 14px 18px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid; position: relative; }
+.chain-step.premise { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+.chain-step.reasoning { border-color: #8b5cf6; background: rgba(139,92,246,0.08); }
+.chain-step.hypothesis { border-color: #f59e0b; background: rgba(245,158,11,0.08); }
+.chain-step.verification { border-color: #10b981; background: rgba(16,185,129,0.08); }
+.chain-step.conclusion { border-color: #ef4444; background: rgba(239,68,68,0.08); }
+.chain-step .type { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #666; margin-bottom: 4px; }
+.chain-step .content { font-size: 14px; line-height: 1.5; }
+.chain-step .meta { font-size: 11px; color: #555; margin-top: 6px; display: flex; gap: 12px; }
+.chain-step .deps { color: #8b5cf6; }
+.chain-step.verified::after { content: "✓"; position: absolute; top: 10px; right: 12px; color: #10b981; font-size: 16px; }
+.status-bar { position: absolute; bottom: 16px; left: 16px; right: 16px; padding: 10px 14px; background: rgba(0,0,0,0.8); border-radius: 8px; display: flex; justify-content: space-between; font-size: 12px; }
+.status-bar .badge { padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.status-bar .active { background: #f59e0b22; color: #f59e0b; }
+.status-bar .completed { background: #10b98122; color: #10b981; }
+svg { width: 100%; height: 100%; }
+.node { cursor: pointer; }
+.node circle { stroke-width: 2; }
+.node text { font-size: 11px; fill: #ccc; text-anchor: middle; }
+.link { stroke: #333; stroke-width: 1.5; fill: none; }
+.arrow { fill: #333; }
+.session-list { margin-top: 12px; }
+.session-item { padding: 8px 12px; margin-bottom: 4px; background: #111; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; justify-content: space-between; }
+.session-item:hover { background: #1a1a2e; }
+.empty { text-align: center; padding: 60px 20px; color: #444; }
+.empty h3 { font-size: 16px; margin-bottom: 8px; color: #666; }
+.submit-form { padding: 16px 30px; background: #0d0d15; border-top: 1px solid #1a1a2e; }
+.submit-form textarea { width: 100%; padding: 8px 12px; border: 1px solid #333; background: #111; color: #e0e0e0; border-radius: 6px; font-size: 13px; resize: vertical; min-height: 50px; }
+.submit-form .row { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🔮 PLATO Decomposition Explorer</h1>
+  <span>Reasoning-as-Infrastructure • cocapn.ai</span>
+</div>
+
+<div class="controls">
+  <button class="btn" onclick="createSession('fast')">New Session (Fast)</button>
+  <button class="btn" onclick="createSession('full')">New Session (Full)</button>
+  <select id="sessions" onchange="loadSession(this.value)"><option value="">— Select Session —</option></select>
+  <button class="btn" onclick="refreshSessions()">Refresh</button>
+  <button class="btn danger" onclick="runDemo()">▶ Run Demo</button>
+</div>
+
+<div class="main">
+  <div class="graph-panel">
+    <svg id="graph"></svg>
+    <div class="status-bar" id="statusBar" style="display:none">
+      <span id="statusRoom"></span>
+      <span id="statusBadge"></span>
+      <span id="statusAtoms"></span>
+    </div>
+  </div>
+  <div class="chain-panel" id="chainPanel">
+    <div class="empty"><h3>No active session</h3><p>Create a new session or select one to view</p></div>
+  </div>
+</div>
+
+<div class="submit-form" id="submitForm" style="display:none">
+  <textarea id="atomContent" placeholder="Enter reasoning step content..."></textarea>
+  <div class="row">
+    <select id="atomType"><option value="premise">Premise</option><option value="reasoning">Reasoning</option><option value="hypothesis">Hypothesis</option><option value="verification">Verification</option><option value="conclusion">Conclusion</option></select>
+    <input id="atomDeps" placeholder="depends_on (comma-sep IDs)" style="flex:1">
+    <input id="atomConf" type="number" value="0.8" min="0" max="1" step="0.05" style="width:70px">
+    <label><input id="atomVerified" type="checkbox"> Verified</label>
+    <button class="btn" onclick="submitAtom()">Submit Atom</button>
+  </div>
+</div>
+
+<script>
+const API = window.location.hostname === 'localhost' ? 'http://localhost:8847' : '/api/plato';
+let currentRoom = null;
+let nextId = 1;
+
+const COLORS = {premise:'#3b82f6',reasoning:'#8b5cf6',hypothesis:'#f59e0b',verification:'#10b981',conclusion:'#ef4444'};
+
+async function api(path, data) {
+  const url = data !== undefined ? `${API}${path}` : `${API}${path}`;
+  const opts = data !== undefined ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)} : {};
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+async function createSession(mode) {
+  const r = await api('/decompose', {mode, agent:'web-explorer'});
+  if (r.room) { currentRoom = r.room; refreshSessions(); loadSession(r.room); }
+}
+
+async function refreshSessions() {
+  const r = await api('/decompose/sessions');
+  const sel = document.getElementById('sessions');
+  sel.innerHTML = '<option value="">— Select Session —</option>';
+  (r.sessions||[]).forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.room; o.textContent = `${s.room} (${s.status}, ${s.atoms} atoms)`;
+    if (s.room === currentRoom) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+async function loadSession(room) {
+  if (!room) return;
+  currentRoom = room;
+  const [status, graph] = await Promise.all([api(`/decompose/${room}/status`), api(`/decompose/${room}/graph`)]);
+  
+  // Status bar
+  const bar = document.getElementById('statusBar'); bar.style.display = 'flex';
+  document.getElementById('statusRoom').textContent = room;
+  document.getElementById('statusBadge').innerHTML = `<span class="badge ${status.status}">${status.status}</span>`;
+  document.getElementById('statusAtoms').textContent = `${status.atoms} atoms • depth ${status.max_depth}`;
+  
+  // Submit form
+  document.getElementById('submitForm').style.display = status.status === 'active' ? 'block' : 'none';
+  nextId = status.atoms + 1;
+  
+  // Chain panel
+  renderChain(graph);
+  renderGraph(graph);
+}
+
+function renderChain(graph) {
+  const panel = document.getElementById('chainPanel');
+  if (!graph.nodes || !graph.nodes.length) { panel.innerHTML = '<div class="empty"><h3>Empty session</h3><p>Submit atoms to build a reasoning chain</p></div>'; return; }
+  
+  const depMap = {};
+  graph.links.forEach(l => { (depMap[l.target] = depMap[l.target] || []).push(l.source); });
+  
+  panel.innerHTML = graph.nodes.map(n => `
+    <div class="chain-step ${n.type} ${n.verified ? 'verified' : ''}">
+      <div class="type">${n.symbol} — ${n.type}</div>
+      <div class="content">${n.content}</div>
+      <div class="meta">
+        <span>conf ${(n.confidence*100).toFixed(0)}%</span>
+        <span>depth ${n.depth}</span>
+        ${depMap[n.id] ? `<span class="deps">← ${depMap[n.id].join(', ')}</span>` : ''}
+        ${n.agent && n.agent !== 'unknown' ? `<span>${n.agent}</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderGraph(graph) {
+  const svg = document.getElementById('graph');
+  if (!graph.nodes || !graph.nodes.length) { svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#333" font-size="14">No atoms yet</text>'; return; }
+  
+  const w = svg.clientWidth || 600, h = svg.clientHeight || 400;
+  const cx = w/2, cy = h/2;
+  
+  // Simple radial layout by depth
+  const maxDepth = Math.max(...graph.nodes.map(n => n.depth));
+  const positions = {};
+  const byDepth = {};
+  graph.nodes.forEach(n => { (byDepth[n.depth] = byDepth[n.depth] || []).push(n); });
+  
+  Object.entries(byDepth).forEach(([d, nodes]) => {
+    const radius = (parseInt(d) / Math.max(maxDepth,1)) * Math.min(w,h) * 0.35 + 40;
+    nodes.forEach((n, i) => {
+      const angle = (i / nodes.length) * Math.PI * 2 - Math.PI/2;
+      positions[n.id] = { x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius };
+    });
+  });
+  
+  let html = `<defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="arrow"/></marker></defs>`;
+  
+  // Links
+  graph.links.forEach(l => {
+    const s = positions[l.source], t = positions[l.target];
+    if (s && t) html += `<line class="link" x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}" marker-end="url(#arrowhead)"/>`;
+  });
+  
+  // Nodes
+  graph.nodes.forEach(n => {
+    const p = positions[n.id]; if (!p) return;
+    const r = n.type === 'conclusion' ? 22 : 16;
+    html += `<g class="node" transform="translate(${p.x},${p.y})">
+      <circle r="${r}" fill="${COLORS[n.type]}22" stroke="${COLORS[n.type]}"/>
+      <text dy="-${r+6}" font-size="10" fill="${COLORS[n.type]}" font-weight="600">${n.id}</text>
+      <text dy="4" font-size="11">${n.symbol}</text>
+      ${n.verified ? `<circle r="4" cx="${r-2}" cy="${-(r-2)}" fill="#10b981"/>` : ''}
+    </g>`;
+  });
+  
+  svg.innerHTML = html;
+}
+
+async function submitAtom() {
+  if (!currentRoom) return;
+  const type = document.getElementById('atomType').value;
+  const content = document.getElementById('atomContent').value.trim();
+  if (!content) return;
+  
+  const id = type[0].toUpperCase() + nextId;
+  const deps = document.getElementById('atomDeps').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const conf = parseFloat(document.getElementById('atomConf').value) || 0.7;
+  const verified = document.getElementById('atomVerified').checked;
+  
+  const r = await api(`/decompose/${currentRoom}/atom`, {atom_id:id, content, atom_type:type, depends_on:deps, confidence:conf, is_verified:verified, agent:'web-explorer'});
+  
+  if (r.error) { alert(r.error); return; }
+  document.getElementById('atomContent').value = '';
+  document.getElementById('atomDeps').value = '';
+  nextId++;
+  
+  loadSession(currentRoom);
+  
+  if (r.session_status === 'completed') {
+    document.getElementById('submitForm').style.display = 'none';
+    if (r.best_conclusion) alert(`✅ Session completed!\nBest: ${r.best_conclusion.content}\nConfidence: ${(r.best_conclusion.confidence*100).toFixed(0)}%`);
+  }
+}
+
+async function runDemo() {
+  const r = await api('/decompose', {mode:'fast', agent:'demo'});
+  const room = r.room;
+  currentRoom = room;
+  
+  const steps = [
+    {atom_id:'P1',content:'Agent frameworks lack persistent memory across sessions',atom_type:'premise',confidence:0.9},
+    {atom_id:'R1',content:'RAG retrieves facts but not reasoning patterns — agents re-derive solutions repeatedly',atom_type:'reasoning',depends_on:['P1'],confidence:0.88},
+    {atom_id:'H1',content:'Build a reasoning database where chains persist and compose',atom_type:'hypothesis',depends_on:['R1'],confidence:0.82},
+    {atom_id:'V1',content:'Prototype shows 3x faster problem-solving when agents access prior reasoning',atom_type:'verification',depends_on:['H1'],is_verified:true,confidence:0.94},
+    {atom_id:'C1',content:'PLATO: a tile-based knowledge graph that stores reasoning, not just facts. Agents wrap any framework via plato.wrap(agent).reason(query)',atom_type:'conclusion',depends_on:['V1'],is_verified:true,confidence:0.95},
+  ];
+  
+  for (const step of steps) {
+    await new Promise(r => setTimeout(r, 800));
+    await api(`/decompose/${room}/atom`, {...step, agent:'demo'});
+    await loadSession(room);
+  }
+  
+  refreshSessions();
+}
+
+refreshSessions();
+</script>
+</body>
+</html>

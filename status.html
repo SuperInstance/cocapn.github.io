@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PLATO Fleet Status</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0d1117; color: #c9d1d9; font-family: 'SF Mono', 'Fira Code', monospace; padding: 2rem; }
+h1 { color: #00E6D6; margin-bottom: 0.5rem; font-size: 1.5rem; }
+.subtitle { color: #8b949e; margin-bottom: 2rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.service { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; position: relative; overflow: hidden; }
+.service::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.service.healthy::before { background: #3fb950; }
+.service.unhealthy::before { background: #f85149; }
+.service.checking::before { background: #d29922; }
+.service h2 { font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.status-dot.healthy { background: #3fb950; box-shadow: 0 0 8px #3fb950; }
+.status-dot.unhealthy { background: #f85149; box-shadow: 0 0 8px #f85149; }
+.status-dot.checking { background: #d29922; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.meta { color: #8b949e; font-size: 0.85rem; margin-top: 0.75rem; }
+.meta span { margin-right: 1rem; }
+.latency { color: #3fb950; font-weight: bold; }
+.error { color: #f85149; font-size: 0.85rem; margin-top: 0.5rem; }
+.last-check { text-align: center; color: #8b949e; font-size: 0.8rem; margin-top: 1rem; }
+a { color: #00E6D6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+nav { margin-bottom: 2rem; }
+nav a { margin-right: 1rem; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/">← Home</a>
+  <a href="/developers.html">Developers</a>
+  <a href="https://github.com/SuperInstance/plato">GitHub</a>
+</nav>
+<h1>🔮 PLATO Fleet Status</h1>
+<p class="subtitle">Live service health — auto-refreshes every 60 seconds</p>
+
+<div class="grid" id="services"></div>
+
+<div class="last-check" id="lastCheck">Checking...</div>
+
+<script>
+const SERVICES = [
+  { name: 'Crab Trap (MUD)', port: 4042, desc: 'Multi-agent training rooms', path: '/health' },
+  { name: 'PLATO Room Server', port: 8847, desc: 'Knowledge graph & tiles', path: '/status' },
+  { name: 'Arena', port: 4044, desc: 'Agent competition & ELO', path: '/leaderboard' },
+  { name: 'Keeper', port: 8900, desc: 'Fleet orchestration', path: '/status' },
+  { name: 'Agent API', port: 8901, desc: 'Agent gateway', path: '/status' },
+  { name: 'Seed MCP', port: 9438, desc: 'Model context protocol', path: '/health' },
+];
+
+const HOST = '147.224.38.131';
+
+async function checkService(svc) {
+  const card = document.createElement('div');
+  card.className = 'service checking';
+  card.innerHTML = `<h2><span class="status-dot checking"></span>${svc.name}</h2>
+    <div>${svc.desc}</div>
+    <div class="meta">Port: ${svc.port}</div>`;
+
+  const start = Date.now();
+  try {
+    const resp = await fetch(`http://${HOST}:${svc.port}${svc.path}`, { signal: AbortSignal.timeout(5000) });
+    const data = await resp.json();
+    const latency = Date.now() - start;
+    card.className = 'service healthy';
+    card.innerHTML = `<h2><span class="status-dot healthy"></span>${svc.name}</h2>
+      <div>${svc.desc}</div>
+      <div class="meta"><span class="latency">${latency}ms</span><span>Port: ${svc.port}</span></div>`;
+  } catch(e) {
+    card.className = 'service unhealthy';
+    card.innerHTML = `<h2><span class="status-dot unhealthy"></span>${svc.name}</h2>
+      <div>${svc.desc}</div>
+      <div class="error">${e.message}</div>
+      <div class="meta">Port: ${svc.port}</div>`;
+  }
+  return card;
+}
+
+async function checkAll() {
+  const grid = document.getElementById('services');
+  grid.innerHTML = '';
+  const cards = await Promise.all(SERVICES.map(checkService));
+  cards.forEach(c => grid.appendChild(c));
+  document.getElementById('lastCheck').textContent = `Last check: ${new Date().toISOString()}`;
+}
+
+checkAll();
+setInterval(checkAll, 60000);
+</script>
+</body>
+</html>
